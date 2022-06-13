@@ -14,4 +14,4 @@ def get_index_info(code: str):
 def get_index_data(code: str):
   return jsonify(Index(code).get_values(**request.args.to_dict()))
 
-app.run(host='0.0.0.0', debug=True)
+app.run(host='0.0.0.0', port='33', debug=True)
