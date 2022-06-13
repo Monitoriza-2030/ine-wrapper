@@ -5,9 +5,9 @@ COPY requirements.txt .
 RUN pip install -r requirements.txt
 
 # set work directory
-WORKDIR /
+WORKDIR /app
 
 # Copy app
-COPY ./app /app/
+COPY . ./
 
 CMD python3 -u server.py
