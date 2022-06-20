@@ -3,3 +3,6 @@ services:
     build: ./api
     ports:
       - 5000:5000
+
+  mongodb:
+    image: mongo
