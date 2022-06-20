@@ -1,4 +1,4 @@
-import logging
+import json
 import requests
 from sys import argv
 from pymongo import MongoClient
@@ -18,7 +18,7 @@ class Index:
     self._unit_description = data['UnidadeMedida']
     self._filters = [ Filter(dim['abrv'], [ Option(option[0]['cat_id'], option[0]['categ_dsg']) for key, option in data['Dimensoes']['Categoria_Dim'][0].items() if "_Num{}_".format(dim['dim_num']) in key ]) for dim in data['Dimensoes']['Descricao_Dim'] ]
 
-  def normalize_filters(self, filters: dict) -> dict:
+  def get_values(self, **filters):
     for key, value in filters.items():
       filters[key] = value.split(',')
     
@@ -26,21 +26,10 @@ class Index:
     if 'Dim1' not in filters.keys():
       filters['Dim1'] = [ option['id'] for option in self._filters[0].to_dict()['options'] ]
 
-    return filters
+    return self._get_values(**filters)
 
-  def get_values(self, cache: bool = True, **filters):
-    filters = self.normalize_filters(filters)
+  def _get_values(self, **filters):
     data = []
-
-    if cache:
-      client = MongoClient('mongodb://%s:%s@%s' % (config.MONGO_USERNAME, config.MONGO_PASSWORD, config.MONGO_HOST))
-      db = client['ine']
-      collection = db['values']
-      data = collection.find({ 'index_code': self._id, **{ key + '.id': { '$in': value } for key, value in filters.items() }})
-      data = [ { key: value for key, value in item.items() if key != '_id' } for item in data ]
-
-      logging.info("{} items loaded from cache".format(len(data)))
-      return list(data)
 
     for year in filters['Dim1']:
       ine_data = requests.get(BASE_URL + '/pindica.jsp?op=2&lang=PT&varcd=' + self._id + '&Dim1=' + year).json()[0]
@@ -53,14 +42,6 @@ class Index:
 
       data.extend(list(filter(lambda entry: len([ key for key, values in filters.items() if entry[key]['id'] not in values ]) == 0, ine_data)))
 
-    client = MongoClient('mongodb://%s:%s@%s' % (config.MONGO_USERNAME, config.MONGO_PASSWORD, config.MONGO_HOST))
-    db = client['ine']
-    collection = db['values']
-    collection.delete_many({ 'index_code': self._id, **{ key: { '$in': value } for key, value in filters.items() }})
-    collection.insert_many([ { 'index_code': self._id, **value } for value in data ]) 
-    collection.create_indexes([IndexModel("index_code"), IndexModel("Dim1"), IndexModel("Dim2")])
-    
-    logging.info("{} items loaded from ine".format(len(data)))
     return data
 
   def to_dict(self) -> dict:
@@ -68,6 +49,29 @@ class Index:
 
   def __str__(self) -> str:
     return '{} - {}\n{}'.format(self._id, self._name, '\n'.join([str(f) for f in self._filters])) 
+
+
+class CachedIndex(Index):
+
+  def _get_values(self, cache: bool = True, **filters):
+    results = []
+
+    client = MongoClient('mongodb://%s:%s@%s' % (config.MONGO_USERNAME, config.MONGO_PASSWORD, config.MONGO_HOST))
+    db = client['ine']
+    collection = db['values']
+
+    if cache: 
+      results = collection.find({ 'index_code': self._id, **{ key + '.id': { '$in': value } for key, value in filters.items() }})
+      results = [ { key: value for key, value in item.items() if key not in ['_id', 'index_code'] } for item in results ]
+
+    if not len(results):
+      results = super()._get_values(**filters)
+
+      collection.delete_many({})
+      collection.insert_many([ { 'index_code': self._id, **value } for value in results ]) 
+      collection.create_indexes([IndexModel("index_code"), IndexModel("Dim1"), IndexModel("Dim2")])
+
+    return results
 
 
 class Filter:

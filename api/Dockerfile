@@ -10,4 +10,4 @@ WORKDIR /app
 # Copy app
 COPY . ./
 
-CMD python3 -u server.py
+CMD flask run --host=0.0.0.0
