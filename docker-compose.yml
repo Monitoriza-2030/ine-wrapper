@@ -3,6 +3,14 @@ services:
     build: ./api
     ports:
       - 5000:5000
+    env_file:
+      - mongo.env
+    environment:
+      - MONGO_USERNAME=$$MONGO_INITDB_ROOT_USERNAME
+      - MONGO_PASSWORD=$$MONGO_INITDB_ROOT_USERNAME
+      - MONGO_HOST=mongodb
 
   mongodb:
     image: mongo
+    env_file:
+      - mongo.env
