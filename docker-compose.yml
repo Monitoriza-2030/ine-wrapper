@@ -10,6 +10,8 @@ services:
       - MONGO_PASSWORD=$$MONGO_INITDB_ROOT_USERNAME
       - MONGO_HOST=mongodb
 
+      - FLASK_ENV=development
+
   mongodb:
     image: mongo
     env_file:
