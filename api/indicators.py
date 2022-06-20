@@ -1,4 +1,3 @@
-import json
 import requests
 from sys import argv
 from pymongo import MongoClient

@@ -1,4 +1,3 @@
-import json
 from flask import Flask, request, jsonify
 from pymongo import MongoClient
 from config import config
