@@ -1,5 +1,5 @@
 services:
-  api:
+  ine_api:
     build: ./api
     env_file:
       - mongo.env
