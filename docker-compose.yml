@@ -1,5 +1,21 @@
 services:
-  api:
+  ine_api:
     build: ./api
-    ports:
-      - 5001:5000
+    env_file:
+      - mongo.env
+    environment:
+      - MONGO_USERNAME=$$MONGO_INITDB_ROOT_USERNAME
+      - MONGO_PASSWORD=$$MONGO_INITDB_ROOT_USERNAME
+      - MONGO_HOST=mongodb
+
+      - FLASK_ENV=development
+
+  mongodb:
+    image: mongo
+    env_file:
+      - mongo.env
+
+networks:
+  default:
+    external:
+      name: monitoriza_network
