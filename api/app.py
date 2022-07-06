@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify
+from flask_cors import CORS
 from pymongo import MongoClient
 from config import config
 
@@ -6,6 +7,7 @@ from indicators import CachedIndex
 
 
 app = Flask(__name__)
+CORS(app)
 app.config['JSON_AS_ASCII'] = False
 
 @app.get('/index/<code>')
