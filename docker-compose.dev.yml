@@ -1,6 +1,8 @@
 services:
   ine_api:
     build: ./api
+    ports:
+      - 5000:5000
     env_file:
       - mongo.env
     environment:
@@ -15,7 +17,3 @@ services:
     env_file:
       - mongo.env
 
-networks:
-  default:
-    external:
-      name: monitoriza_network

@@ -1,4 +1,4 @@
-import json
+import logging
 import requests
 from sys import argv
 from pymongo import MongoClient
@@ -6,6 +6,8 @@ from pymongo.operations import IndexModel
 
 from config import config
 
+
+logging.basicConfig(level=logging.DEBUG)
 
 BASE_URL = 'https://www.ine.pt/ine/json_indicador'
 
@@ -16,7 +18,7 @@ class Index:
     self._id = data['IndicadorCod']
     self._name = data['IndicadorNome']
     self._unit_description = data['UnidadeMedida']
-    self._filters = [ Filter(dim['abrv'], [ Option(option[0]['cat_id'], option[0]['categ_dsg']) for key, option in data['Dimensoes']['Categoria_Dim'][0].items() if "_Num{}_".format(dim['dim_num']) in key ]) for dim in data['Dimensoes']['Descricao_Dim'] ]
+    self._filters = [ Filter(dim['abrv'], [ Option(option[0]['categ_cod'], option[0]['categ_dsg']) for key, option in data['Dimensoes']['Categoria_Dim'][0].items() if "_Num{}_".format(dim['dim_num']) in key ]) for dim in data['Dimensoes']['Descricao_Dim'] ]
 
   def _format_filters(self, filters: dict = None):
     if filters is None: filters = {}
@@ -41,11 +43,11 @@ class Index:
     for year in filters['Dim1']:
       ine_data = requests.get(BASE_URL + '/pindica.jsp?op=2&lang=PT&varcd=' + self._id + '&Dim1=' + year).json()[0]
       ine_data = [ { 
-        'Dim1': { 'id': 'S7A' + str(year), 'label': year }, 
+        'Dim1': { 'id': year, 'label': year_label }, 
         'Dim2': { 'id': line['geocod'], 'label': line['geodsg'] },
         **{ 'Dim' + str(i) : { 'id': line['dim_{}'.format(i)], 'label': line['dim_{}_t'.format(i)] } for i in range(3, len([key for key in line.keys() if key.startswith('dim_') and key.endswith('_t')])+3) },
         'Value': line['valor'] if 'valor' in line.keys() else None
-      } for year, content in ine_data['Dados'].items() for line in content ]
+      } for year_label, content in ine_data['Dados'].items() for line in content ]
 
       data.extend(list(filter(lambda entry: len([ key for key, values in filters.items() if entry[key]['id'] not in values ]) == 0, ine_data)))
 
@@ -92,16 +94,19 @@ class CachedIndex(Index):
 
     if cache:
       results = collection.find({ 'index_code': self._id, **{ key + '.id': { '$in': value } for key, value in filters.items() }})
-      results = [ { key: value for key, value in item.items() if key not in ['_id', 'index_code'] } for item in results ]
+      results = [ item for item in results ]
 
-    if not len(results):
+    if len(results) == 0 and len([ item for item in collection.find({ 'index_code': self._id }) ]) == 0:
       results = super()._get_values()
+      results = [ { 'index_code': self._id, **value } for value in results ]
 
-      collection.delete_many({})
-      collection.insert_many([ { 'index_code': self._id, **value } for value in results ]) 
+      collection.drop()
+      collection.insert_many(results) 
       collection.create_indexes([IndexModel("index_code"), IndexModel("Dim1"), IndexModel("Dim2")])
 
       results = list(filter(lambda entry: len([ key for key, values in filters.items() if entry[key]['id'] not in values ]) == 0, results))
+    
+    results = [ { key: value for key, value in item.items() if key not in ['_id', 'index_code'] } for item in results ]
 
     return results
 
