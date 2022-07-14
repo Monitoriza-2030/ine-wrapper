@@ -100,7 +100,7 @@ class CachedIndex(Index):
       results = super()._get_values()
       results = [ { 'index_code': self._id, **value } for value in results ]
 
-      collection.drop()
+      collection.delete_many({ 'index_code': self._id })
       collection.insert_many(results) 
       collection.create_indexes([IndexModel("index_code"), IndexModel("Dim1"), IndexModel("Dim2")])
 
