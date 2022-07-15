@@ -3,12 +3,16 @@ from flask_cors import CORS
 from pymongo import MongoClient
 from config import config
 
-from indicators import CachedIndex
+from indicators import CachedIndex, CachedIndexSearch
 
 
 app = Flask(__name__)
 CORS(app)
 app.config['JSON_AS_ASCII'] = False
+
+@app.get('/index')
+def get_indexes_info():
+  return jsonify(CachedIndexSearch().get_all(**request.args.to_dict()))
 
 @app.get('/index/<code>')
 def get_index_info(code: str):
