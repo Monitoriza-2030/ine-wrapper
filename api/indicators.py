@@ -79,6 +79,7 @@ class CachedIndex(Index):
       collection.delete_one(mongo_filter)
       collection.insert_one(super().to_dict()) 
       collection.create_indexes([IndexModel("id")])
+      collection.create_index([('id', 'text'), ('name', 'text')])
     else:
       self._id = result['id']
       self._name = result['name']
@@ -109,6 +110,23 @@ class CachedIndex(Index):
     results = [ { key: value for key, value in item.items() if key not in ['_id', 'index_code'] } for item in results ]
 
     return results
+
+
+class CachedIndexSearch:
+  def __init__(self) -> None:
+    client = MongoClient('mongodb://%s:%s@%s' % (config.MONGO_USERNAME, config.MONGO_PASSWORD, config.MONGO_HOST))
+    db = client['ine']
+    self._collection = db['headers']
+
+  def get_all(self, **args):
+    query = {}
+
+    if 'query' in args.keys():
+      searched_fileds = [ 'id', 'name' ]
+      query = { '$or': [ { field: { '$regex': args['query'], '$options' : 'i' } } for field in searched_fileds ] }
+
+    results = self._collection.find(query, {'_id': 0, 'id': 1, 'name': 1, 'unit': 1})
+    return [r for r in results]
 
 
 class Filter:

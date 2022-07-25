@@ -5,6 +5,8 @@ services:
       - 5000:5000
     env_file:
       - mongo.env
+    volumes:
+      - ./api:/app
     environment:
       - MONGO_USERNAME=$$MONGO_INITDB_ROOT_USERNAME
       - MONGO_PASSWORD=$$MONGO_INITDB_ROOT_PASSWORD
