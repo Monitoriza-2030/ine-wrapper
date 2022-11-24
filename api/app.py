@@ -12,15 +12,24 @@ app.config['JSON_AS_ASCII'] = False
 
 @app.get('/index')
 def get_indexes_info():
-  return jsonify(CachedIndexSearch().get_all(**request.args.to_dict()))
+  try:
+    return jsonify(CachedIndexSearch().get_all(**request.args.to_dict()))
+  except Exception as e: 
+    return jsonify(e)
 
 @app.get('/index/<code>')
 def get_index_info(code: str):
-  return CachedIndex(code).to_dict()
+  try:
+    return CachedIndex(code).to_dict()
+  except Exception as e: 
+    return jsonify(e)
 
 @app.get('/index/<code>/data')
 def get_index_data(code: str):
-  return jsonify(CachedIndex(code).get_values(**request.args.to_dict()))
+  try:
+    return jsonify(CachedIndex(code).get_values(**request.args.to_dict()))
+  except Exception as e: 
+    return jsonify(e)
 
 @app.get('/mongo/status')
 def mongo_status():
