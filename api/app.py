@@ -15,21 +15,21 @@ def get_indexes_info():
   try:
     return jsonify(CachedIndexSearch().get_all(**request.args.to_dict()))
   except Exception as e: 
-    return jsonify(e)
+    return jsonify(str(e))
 
 @app.get('/index/<code>')
 def get_index_info(code: str):
   try:
     return CachedIndex(code).to_dict()
   except Exception as e: 
-    return jsonify(e)
+    return jsonify(str(e))
 
 @app.get('/index/<code>/data')
 def get_index_data(code: str):
   try:
     return jsonify(CachedIndex(code).get_values(**request.args.to_dict()))
   except Exception as e: 
-    return jsonify(e)
+    return jsonify(str(e))
 
 @app.get('/mongo/status')
 def mongo_status():
